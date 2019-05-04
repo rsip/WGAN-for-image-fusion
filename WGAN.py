@@ -151,9 +151,8 @@ class FusionGAN(object):
         # print(" [!] Load failed...")
 
         # 加载预训练模型
-        net_path = os.path.join(os.getcwd(), 'lowloss_sum_weight', 'epoch0')
-        netG_path = os.path.join(net_path, 'netG.pth')
-        netD_path = os.path.join(net_path, 'netD.pth')
+        netG_path = os.path.join(os.getcwd(), 'netG.pth')
+        netD_path = os.path.join(os.getcwd(), 'netD.pth')
         fusion_model.load_state_dict(torch.load(netG_path))
         discriminator.load_state_dict(torch.load(netD_path))
 
@@ -258,7 +257,7 @@ class FusionGAN(object):
                               % ((ep + 1), counter, d_loss, g_loss_total))
 
                 vis.plot_many_stack({'train_loss': loss_meter.value()[0]})  # 为了可视化增加的内容
-                model_path = os.path.join(os.getcwd(), 'WGAN_weight_0504', 'epoch' + str(ep))
+                model_path = os.path.join(os.getcwd(), 'weight', 'epoch' + str(ep))
                 if not os.path.exists(model_path):
                     os.makedirs(model_path)
                 netD_path = os.path.join(model_path, 'netD.pth')

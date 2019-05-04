@@ -53,23 +53,9 @@ def decomp_combine_image(ir_image, vi_image):
     combine_low = (ir_low + vi_low) / 2
     combine_average = (ir_image + vi_image) /2
 
-    # 将计算得到的图像数据通过uint8的方式显示出来
-    # cv2.imshow('ir_low', (ir_low*127.5 + 127.5).astype(np.uint8))
-    # cv2.imshow('ir_high', (ir_high*127.5 + 127.5).astype(np.uint8))
-    # cv2.imshow('vi_low', (vi_low*127.5 + 127.5).astype(np.uint8))
-    # cv2.imshow('vi_high', (vi_high*127.5 + 127.5).astype(np.uint8))
-    # cv2.imshow('combine_low', (combine_low * 127.5 + 127.5).astype(np.uint8))
-    # cv2.imshow('combine_high', (combine_high * 127.5 + 127.5).astype(np.uint8))
-    # cv2.imshow('combine', ((combine_high + combine_low) * 127.5 + 127.5).astype(np.uint8))
-    # cv2.imshow('combine_average', (combine_average.astype(np.uint8)))
-    # cv2.imshow('calc_low', ((combine_average - combine_high * 127.5 + 127.5).astype(np.uint8)))
-    # cv2.waitKey(0)
-    # cv2.destroyAllWindows()
-
     return combine_low
 
 def input_setup(index):
-    padding = 0  # 填充卷积带来的尺寸缩减
 
     ir_image = imread(data_ir[index], True)
     vi_image = imread(data_vi[index], True)
@@ -78,20 +64,8 @@ def input_setup(index):
     # cv2.waitKey(0)
 
     combine_low = decomp_combine_image(ir_image, vi_image)
-
     input_ir = (ir_image-127.5)/127.5  # 将该幅图像的数据归一化
-    # 对图像进行缩放
-    height, width = input_ir.shape
-    size = (round(width * 0.25), round(height * 0.25))
-    input_ir = cv2.resize(input_ir, size, interpolation=cv2.INTER_AREA)
-    combine_low = cv2.resize(combine_low, size, cv2.INTER_AREA)
-    # 图像填充
-    input_ir = np.lib.pad(input_ir, ((padding, padding), (padding, padding)), 'edge')
-    w, h = input_ir.shape
-
     input_vi = (vi_image-127.5)/127.5
-    input_vi = cv2.resize(input_vi, size, interpolation=cv2.INTER_AREA)
-    input_vi = np.lib.pad(input_vi, ((padding, padding), (padding, padding)), 'edge')
 
     # 扩充输入数据的维度
     train_data_ir = np.expand_dims(input_ir, axis=0)
@@ -105,7 +79,7 @@ fusion_model = netG().cuda().eval()
 # print(fusion_model)
 # discriminator = netD().cuda()
 ep = 4
-model_path = os.path.join(os.getcwd(), 'weight_0504', 'epoch' + str(ep))
+model_path = os.path.join(os.getcwd(), 'weight', 'epoch' + str(ep))
 netG_path = os.path.join(model_path, 'netG.pth')
 # netD_path = os.path.join(model_path, 'netD.pth')
 fusion_model.load_state_dict(torch.load(netG_path))
@@ -143,24 +117,15 @@ for i in range(0, len(data_ir)):
     # 查看生成的图片以及低频、高频区域
     result = result.squeeze().cpu().detach().numpy()
     result_high = result_high.squeeze().cpu().detach().numpy()
-    result_low = result - result_high
-    dis_loss = torch.nn.MSELoss(reduce=True, size_average=True)
-    low_loss = dis_loss(torch.tensor((result_low-127.5)/127.5), torch.FloatTensor(combine_low))
-    print('low_loss=', low_loss)
     image_path = os.path.join(os.getcwd(), 'result_0504', 'epoch' + str(ep))
     if not os.path.exists(image_path):
         os.makedirs(image_path)
     if i <= 9:
         result_path = os.path.join(image_path, 'result_0'+str(i)+".bmp")
-        reslow_path = os.path.join(image_path, 'reslow_0'+str(i)+".bmp")
-        reshigh_path = os.path.join(image_path, 'reshigh_0' + str(i) + ".bmp")
     else:
         result_path = os.path.join(image_path, 'result_'+str(i)+".bmp")
-        reslow_path = os.path.join(image_path, 'reslow_' + str(i) + ".bmp")
-        reshigh_path = os.path.join(image_path, 'reshigh_' + str(i) + ".bmp")
     end = time.time()
     # print(out.shape)
     imsave(result.astype(np.uint8), result_path)
-    imsave(result_low.astype(np.uint8), reslow_path)
     imsave(result_high.astype(np.uint8), reshigh_path)
     print("Testing [%d] success, Testing time is [%f]" % (i, end-start))
